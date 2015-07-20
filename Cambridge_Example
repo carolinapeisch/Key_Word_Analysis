@@ -1,0 +1,42 @@
+""" You use mongo in the command line to collect these tweets - this code will stream until you stop it, it will not read the self.n and self.m"""
+import tweepy
+import pymongo
+from tweepy.api import API
+
+API_KEY = ''
+API_SECRET = ''
+ACCESS_TOKEN = ''
+ACCESS_TOKEN_SECRET = ''
+key = tweepy.OAuthHandler(API_KEY, API_SECRET)
+key.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+class CustomStreamListener(tweepy.StreamListener):
+    def __init__(self, api=None):
+        self.api = api or API()
+        self.n = 0
+        self.m = 10
+     
+        self.db = pymongo.MongoClient().mydb
+
+    def on_status(self, status):
+        self.n = self.n+1
+        # keeps printing tweets until it reaches the number of self.m in line 17
+        if self.n < self.m: 
+          #controls what parts of the data (such as tweet content and username) will be collected 
+            data = {}
+            data['tweet'] = status.text.encode('UTF-8')
+            data['user'] = status.user.screen_name
+            data['created_at'] = status.created_at
+            data['geo'] = status.geo
+            data['source'] = status.source       
+        else:
+            print 'tweets = '+str(self.n)
+            return False
+            
+        self.db.Tweets.insert(data)
+
+stream = tweepy.streaming.Stream(key, CustomStreamListener())
+# names 'Cambridge' as key word 
+stream.filter(track=['Cambridge'])
+
+
